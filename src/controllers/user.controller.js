@@ -16,22 +16,34 @@ const registerUser = asyncHandler(async (req, res) => {
     // return res
 
     const {fullname, email, username, password} = req.body
-    console.log("email: ", email)
+
+    // console.log("email: ", email)
+    // console.log("Request body is here: ", req.body)
 
     if ( [fullname, email, username, password].some((field) => field?.trim() === "") ) {
         throw new ApiError(400, "All field are required")
     }
 
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or: [{ username }, { email }]
     })
 
     if (existedUser) {
-        throw new ApiError(409, "User with email or username already exists")
+        throw new ApiError(410, "User with email or username already exists")
     }
 
-    const avatarLocalPath = req.files?.avatar[0]?.path
-    const coverImageLocalPath = req.files?.coverImage[0]?.path
+    // console.log("Multer uploaded files are here: ", req.files)
+
+    //you have to be mindful about optional chaining as it will be the cause of most "read properties of undefined" error
+    const avatarLocalPath = req.files?.avatar?.[0]?.path
+    const coverImageLocalPath = req.files?.coverImage?.[0]?.path
+
+    /*   ALTERNATE METHOD to get LocalPath
+    let coverImageLocalPath
+    if (req.file && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverImageLocalPath = req.files.coverImage[0].path
+    }
+    */
 
     if (!avatarLocalPath) {
         throw new ApiError(400, "Avatar file is required")
@@ -43,6 +55,8 @@ const registerUser = asyncHandler(async (req, res) => {
     if (!avatar) {
         throw new ApiError(400, "Avatar file is required")
     }
+
+    // console.log("Avatar on Cloudinary is here: ", avatar)
 
     const user = await User.create({
         fullname,
